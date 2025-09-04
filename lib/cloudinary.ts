@@ -1,24 +1,24 @@
-import { v2 as cloudinary } from 'cloudinary';
-
-cloudinary.config({
-  cloud_name: 'duxajckwh',
-  api_key: '576684753251999',
-  api_secret: 'pd406-U-1zYWSubxYGetjzcB92A',
-});
+// Cloudinary configuration for client-side uploads
+const CLOUDINARY_CLOUD_NAME = 'duxajckwh';
+const CLOUDINARY_UPLOAD_PRESET = 'ml_default';
 
 export const uploadImage = async (file: File): Promise<string> => {
   const formData = new FormData();
   formData.append('file', file);
-  formData.append('upload_preset', 'ml_default'); 
+  formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
 
   try {
     const response = await fetch(
-      `https://api.cloudinary.com/v1_1/duxajckwh/image/upload`,
+      `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
       {
         method: 'POST',
         body: formData,
       }
     );
+
+    if (!response.ok) {
+      throw new Error(`Upload failed: ${response.statusText}`);
+    }
 
     const data = await response.json();
     return data.secure_url;
@@ -27,5 +27,3 @@ export const uploadImage = async (file: File): Promise<string> => {
     throw error;
   }
 };
-
-export default cloudinary;

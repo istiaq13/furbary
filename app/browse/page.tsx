@@ -7,10 +7,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Search, Filter, X } from 'lucide-react';
 import PetCard from '@/components/PetCard';
-import { collection, query, orderBy, getDocs, where } from 'firebase/firestore';
+import { collection, query, orderBy, getDocs, where, addDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Pet } from '@/types/Pet';
 import { useAuth } from '@/contexts/AuthContext';
+import toast from 'react-hot-toast';
 
 export default function BrowsePage() {
   const { userProfile } = useAuth();
@@ -27,60 +28,98 @@ export default function BrowsePage() {
   }, []);
 
   useEffect(() => {
+    const filterPets = () => {
+      let filtered = pets;
+
+      if (searchTerm) {
+        filtered = filtered.filter(pet =>
+          pet.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          pet.breed.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          pet.description.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      }
+
+      if (selectedSpecies !== 'all') {
+        filtered = filtered.filter(pet => pet.species === selectedSpecies);
+      }
+
+      if (selectedSize !== 'all') {
+        filtered = filtered.filter(pet => pet.size === selectedSize);
+      }
+
+      if (selectedLocation !== 'all') {
+        filtered = filtered.filter(pet =>
+          pet.location.toLowerCase().includes(selectedLocation.toLowerCase())
+        );
+      }
+
+      setFilteredPets(filtered);
+    };
+
     filterPets();
   }, [pets, searchTerm, selectedSpecies, selectedSize, selectedLocation]);
 
   const fetchPets = async () => {
     try {
+      console.log('Fetching pets...');
       const petsRef = collection(db, 'pets');
+      
+      // First, try to get all pets without the compound query
+      const allPetsQuery = query(petsRef, orderBy('createdAt', 'desc'));
+      const allPetsSnapshot = await getDocs(allPetsQuery);
+      console.log('All pets count:', allPetsSnapshot.docs.length);
+      
+      // Then apply the filter for non-adopted pets
       const q = query(
         petsRef,
         where('isAdopted', '==', false),
         orderBy('createdAt', 'desc')
       );
       const querySnapshot = await getDocs(q);
+      console.log('Non-adopted pets count:', querySnapshot.docs.length);
       
-      const petsData = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt.toDate(),
-        updatedAt: doc.data().updatedAt.toDate(),
-      })) as Pet[];
+      const petsData = querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        console.log('Pet data:', { id: doc.id, ...data });
+        return {
+          id: doc.id,
+          ...data,
+          createdAt: data.createdAt?.toDate() || new Date(),
+          updatedAt: data.updatedAt?.toDate() || new Date(),
+        };
+      }) as Pet[];
       
+      console.log('Processed pets data:', petsData);
       setPets(petsData);
     } catch (error) {
       console.error('Error fetching pets:', error);
+      
+      // Fallback: try to get pets without the compound query
+      try {
+        console.log('Trying fallback query...');
+        const petsRef = collection(db, 'pets');
+        const querySnapshot = await getDocs(petsRef);
+        
+        const petsData = querySnapshot.docs
+          .map(doc => {
+            const data = doc.data();
+            return {
+              id: doc.id,
+              ...data,
+              createdAt: data.createdAt?.toDate() || new Date(),
+              updatedAt: data.updatedAt?.toDate() || new Date(),
+            } as Pet;
+          })
+          .filter(pet => !pet.isAdopted);
+        
+        console.log('Fallback pets data:', petsData);
+        setPets(petsData);
+      } catch (fallbackError) {
+        console.error('Fallback query also failed:', fallbackError);
+      }
     } finally {
       setLoading(false);
     }
-  };
-
-  const filterPets = () => {
-    let filtered = pets;
-
-    if (searchTerm) {
-      filtered = filtered.filter(pet =>
-        pet.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        pet.breed.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        pet.description.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    if (selectedSpecies !== 'all') {
-      filtered = filtered.filter(pet => pet.species === selectedSpecies);
-    }
-
-    if (selectedSize !== 'all') {
-      filtered = filtered.filter(pet => pet.size === selectedSize);
-    }
-
-    if (selectedLocation !== 'all') {
-      filtered = filtered.filter(pet =>
-        pet.location.toLowerCase().includes(selectedLocation.toLowerCase())
-      );
-    }
-
-    setFilteredPets(filtered);
   };
 
   const clearFilters = () => {
@@ -92,12 +131,70 @@ export default function BrowsePage() {
 
   const getUniqueLocations = () => {
     const locations = pets.map(pet => pet.location);
-    return [...new Set(locations)];
+    return Array.from(new Set(locations));
   };
 
-  const handleAdopt = (petId: string) => {
-    // This would typically open an adoption request dialog
-    console.log('Adopt pet:', petId);
+  const handleAdopt = async (petId: string) => {
+    if (!userProfile) {
+      toast.error('Please sign in to adopt a pet');
+      return;
+    }
+
+    if (userProfile.userType !== 'adopter') {
+      toast.error('Only adopters can request to adopt pets');
+      return;
+    }
+
+    try {
+      const pet = filteredPets.find(p => p.id === petId);
+      if (!pet) {
+        toast.error('Pet not found');
+        return;
+      }
+
+      // Create an adoption request
+      const adoptionRequest = {
+        petId: petId,
+        petName: pet.name,
+        adopterId: userProfile.uid,
+        adopterName: userProfile.name,
+        adopterEmail: userProfile.email,
+        adopterPhone: userProfile.phone || '',
+        ownerId: pet.ownerId,
+        ownerName: pet.ownerName,
+        message: `Hi! I'm interested in adopting ${pet.name}. Could we discuss this further?`,
+        status: 'pending',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      await addDoc(collection(db, 'adoptionRequests'), adoptionRequest);
+      
+      // Also create a chat between the adopter and owner
+      const chatData = {
+        participants: [userProfile.uid, pet.ownerId],
+        participantNames: {
+          [userProfile.uid]: userProfile.name,
+          [pet.ownerId]: pet.ownerName,
+        },
+        petId: petId,
+        petName: pet.name,
+        lastMessage: `${userProfile.name} is interested in adopting ${pet.name}`,
+        lastMessageTime: new Date(),
+        createdAt: new Date(),
+      };
+
+      await addDoc(collection(db, 'chats'), chatData);
+
+      toast.success(`Adoption request sent for ${pet.name}! Check your chats to continue the conversation.`);
+      
+      // Optionally redirect to chats
+      // window.location.href = '/chats';
+      
+    } catch (error) {
+      console.error('Error creating adoption request:', error);
+      toast.error('Failed to send adoption request. Please try again.');
+    }
   };
 
   if (loading) {

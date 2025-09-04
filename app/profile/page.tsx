@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { User, MapPin, Phone, Mail, Heart, PlusCircle } from 'lucide-react';
+import { User, MapPin, Phone, Mail, Heart, PlusCircle, MessageCircle } from 'lucide-react';
 import PetCard from '@/components/PetCard';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -18,40 +18,44 @@ export default function ProfilePage() {
   const [userPets, setUserPets] = useState<Pet[]>([]);
   const [loading, setLoading] = useState(true);
 
+  console.log('Profile page - user:', user);
+  console.log('Profile page - userProfile:', userProfile);
+  console.log('Profile page - loading:', loading);
+
   useEffect(() => {
+    const fetchUserPets = async () => {
+      if (!user) return;
+
+      try {
+        const petsRef = collection(db, 'pets');
+        const q = query(
+          petsRef,
+          where('ownerId', '==', user.uid),
+          orderBy('createdAt', 'desc')
+        );
+        const querySnapshot = await getDocs(q);
+        
+        const pets = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          createdAt: doc.data().createdAt.toDate(),
+          updatedAt: doc.data().updatedAt.toDate(),
+        })) as Pet[];
+        
+        setUserPets(pets);
+      } catch (error) {
+        console.error('Error fetching user pets:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     if (user && userProfile?.userType === 'owner') {
       fetchUserPets();
     } else {
       setLoading(false);
     }
   }, [user, userProfile]);
-
-  const fetchUserPets = async () => {
-    if (!user) return;
-
-    try {
-      const petsRef = collection(db, 'pets');
-      const q = query(
-        petsRef,
-        where('ownerId', '==', user.uid),
-        orderBy('createdAt', 'desc')
-      );
-      const querySnapshot = await getDocs(q);
-      
-      const pets = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt.toDate(),
-        updatedAt: doc.data().updatedAt.toDate(),
-      })) as Pet[];
-      
-      setUserPets(pets);
-    } catch (error) {
-      console.error('Error fetching user pets:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   if (!user || !userProfile) {
     return (
@@ -136,12 +140,16 @@ export default function ProfilePage() {
         {/* Content Tabs */}
         <Tabs defaultValue={userProfile.userType === 'owner' ? 'my-pets' : 'favorites'}>
           <TabsList className="grid w-full grid-cols-2">
-            {userProfile.userType === 'owner' && (
-              <TabsTrigger value="my-pets">My Pets</TabsTrigger>
-            )}
-            <TabsTrigger value="favorites">Favorites</TabsTrigger>
-            {userProfile.userType === 'adopter' && (
-              <TabsTrigger value="adoption-requests">Adoption Requests</TabsTrigger>
+            {userProfile.userType === 'owner' ? (
+              <>
+                <TabsTrigger value="my-pets">My Pets</TabsTrigger>
+                <TabsTrigger value="favorites">Favorites</TabsTrigger>
+              </>
+            ) : (
+              <>
+                <TabsTrigger value="favorites">Favorites</TabsTrigger>
+                <TabsTrigger value="adoption-requests">Adoption Requests</TabsTrigger>
+              </>
             )}
           </TabsList>
 

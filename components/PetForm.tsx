@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -64,11 +65,6 @@ const PetForm: React.FC<PetFormProps> = ({ onSuccess }) => {
   };
 
   const onSubmit = async (data: PetFormData) => {
-    if (!imageFile) {
-      toast.error('Please select an image for your pet');
-      return;
-    }
-
     if (!userProfile) {
       toast.error('You must be logged in to add a pet');
       return;
@@ -77,8 +73,14 @@ const PetForm: React.FC<PetFormProps> = ({ onSuccess }) => {
     setIsSubmitting(true);
 
     try {
-      // Upload image to Cloudinary
-      const imageUrl = await uploadImage(imageFile);
+      // Upload image to Cloudinary if provided, otherwise use placeholder
+      let imageUrl = '';
+      if (imageFile) {
+        imageUrl = await uploadImage(imageFile);
+      } else {
+        // Use a default placeholder image for pets
+        imageUrl = 'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=400&h=300&fit=crop&crop=center&auto=format&q=60';
+      }
 
       // Save pet data to Firestore
       const petData = {
@@ -120,7 +122,7 @@ const PetForm: React.FC<PetFormProps> = ({ onSuccess }) => {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Image Upload */}
           <div>
-            <Label htmlFor="image" className="text-sm font-medium">Pet Photo</Label>
+            <Label htmlFor="image" className="text-sm font-medium">Pet Photo (Optional)</Label>
             <div className="mt-2">
               <input
                 type="file"
@@ -146,6 +148,7 @@ const PetForm: React.FC<PetFormProps> = ({ onSuccess }) => {
                   <div className="flex flex-col items-center justify-center">
                     <Upload className="h-8 w-8 text-gray-400" />
                     <p className="text-sm text-gray-500">Click to upload pet photo</p>
+                    <p className="text-xs text-gray-400 mt-1">Optional - you can add your pet without a photo</p>
                   </div>
                 )}
               </label>
