@@ -26,7 +26,9 @@ const PetCard: React.FC<PetCardProps> = ({ pet, onAdopt, onFavorite, isFavorited
     onFavorite?.(pet.id);
   };
 
-  const canAdopt = userProfile?.userType === 'adopter' && !pet.isAdopted && pet.ownerId !== userProfile.uid;
+  const canAdopt = userProfile && !pet.isAdopted && pet.ownerId !== userProfile.uid;
+  const isOwner = userProfile && pet.ownerId === userProfile.uid;
+  const isLoggedIn = !!userProfile;
 
   return (
     <Card 
@@ -95,16 +97,39 @@ const PetCard: React.FC<PetCardProps> = ({ pet, onAdopt, onFavorite, isFavorited
         </div>
       </CardContent>
 
-      {canAdopt && (
-        <CardFooter className="p-4 pt-0">
+      <CardFooter className="p-4 pt-0">
+        {!isLoggedIn ? (
+          <div className="w-full text-center">
+            <p className="text-sm text-gray-500 mb-2">Sign in to adopt this pet</p>
+            <Button 
+              onClick={() => window.location.href = '/auth'}
+              variant="outline"
+              className="w-full"
+            >
+              Sign In to Adopt
+            </Button>
+          </div>
+        ) : isOwner ? (
+          <div className="w-full text-center">
+            <p className="text-sm text-gray-500">This is your pet</p>
+          </div>
+        ) : pet.isAdopted ? (
+          <div className="w-full text-center">
+            <p className="text-sm text-gray-500">This pet has been adopted</p>
+          </div>
+        ) : canAdopt ? (
           <Button 
             onClick={() => onAdopt?.(pet.id)}
             className="w-full bg-teal-600 hover:bg-teal-700 transition-colors"
           >
             Adopt {pet.name}
           </Button>
-        </CardFooter>
-      )}
+        ) : (
+          <div className="w-full text-center">
+            <p className="text-sm text-gray-500">Available for adoption</p>
+          </div>
+        )}
+      </CardFooter>
     </Card>
   );
 };

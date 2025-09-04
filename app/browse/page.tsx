@@ -137,11 +137,8 @@ export default function BrowsePage() {
   const handleAdopt = async (petId: string) => {
     if (!userProfile) {
       toast.error('Please sign in to adopt a pet');
-      return;
-    }
-
-    if (userProfile.userType !== 'adopter') {
-      toast.error('Only adopters can request to adopt pets');
+      // Redirect to auth page
+      window.location.href = '/auth';
       return;
     }
 
@@ -149,6 +146,30 @@ export default function BrowsePage() {
       const pet = filteredPets.find(p => p.id === petId);
       if (!pet) {
         toast.error('Pet not found');
+        return;
+      }
+
+      if (pet.ownerId === userProfile.uid) {
+        toast.error('You cannot adopt your own pet');
+        return;
+      }
+
+      if (pet.isAdopted) {
+        toast.error('This pet has already been adopted');
+        return;
+      }
+
+      // Check if user has already sent a request for this pet
+      const existingRequestsRef = collection(db, 'adoptionRequests');
+      const existingQuery = query(
+        existingRequestsRef,
+        where('petId', '==', petId),
+        where('adopterId', '==', userProfile.uid)
+      );
+      const existingSnapshot = await getDocs(existingQuery);
+      
+      if (!existingSnapshot.empty) {
+        toast.error('You have already sent an adoption request for this pet');
         return;
       }
 
@@ -168,28 +189,13 @@ export default function BrowsePage() {
         updatedAt: new Date(),
       };
 
-      await addDoc(collection(db, 'adoptionRequests'), adoptionRequest);
-      
-      // Also create a chat between the adopter and owner
-      const chatData = {
-        participants: [userProfile.uid, pet.ownerId],
-        participantNames: {
-          [userProfile.uid]: userProfile.name,
-          [pet.ownerId]: pet.ownerName,
-        },
-        petId: petId,
-        petName: pet.name,
-        lastMessage: `${userProfile.name} is interested in adopting ${pet.name}`,
-        lastMessageTime: new Date(),
-        createdAt: new Date(),
-      };
+      console.log('Creating adoption request:', adoptionRequest);
+      const docRef = await addDoc(collection(db, 'adoptionRequests'), adoptionRequest);
+      console.log('Adoption request created with ID:', docRef.id);
 
-      await addDoc(collection(db, 'chats'), chatData);
-
-      toast.success(`Adoption request sent for ${pet.name}! Check your chats to continue the conversation.`);
-      
-      // Optionally redirect to chats
-      // window.location.href = '/chats';
+      toast.success(
+        `Adoption request sent for ${pet.name}! The owner will be notified and can approve your request to start chatting.`
+      );
       
     } catch (error) {
       console.error('Error creating adoption request:', error);
