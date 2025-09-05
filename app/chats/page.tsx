@@ -1,52 +1,98 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { MessageCircle, ArrowLeft } from 'lucide-react';
-import ChatSystem from '@/components/ChatSystem';
-import { ref, onValue, query, orderByChild } from 'firebase/database';
-import { realtimeDb } from '@/lib/firebase';
-import { Chat } from '@/types/Pet';
+import { MessageCircle, User } from 'lucide-react';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+
+interface Contact {
+  id: string;
+  name: string;
+  petName?: string;
+  petId?: string;
+}
 
 export default function ChatsPage() {
   const { user, userProfile } = useAuth();
-  const [chats, setChats] = useState<Chat[]>([]);
-  const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [contacts, setContacts] = useState<Contact[]>([]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !userProfile) return;
 
-    const chatsRef = ref(realtimeDb, 'chats');
-    const chatsQuery = query(chatsRef, orderByChild('lastMessageTime'));
-
-    const unsubscribe = onValue(chatsQuery, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        const chatsList = Object.entries(data)
-          .map(([key, value]: [string, any]) => ({
-            id: key,
-            ...value,
-            lastMessageTime: new Date(value.lastMessageTime),
-          }))
-          .filter((chat: Chat) => chat.participants.includes(user.uid))
-          .reverse();
+    const fetchContacts = async () => {
+      try {
+        console.log('Fetching contacts for user:', user.uid);
         
-        setChats(chatsList);
-      } else {
-        setChats([]);
+        // Get approved adoption requests where user is the owner
+        const ownerRequestsQuery = query(
+          collection(db, 'adoptionRequests'),
+          where('ownerId', '==', user.uid),
+          where('status', '==', 'approved')
+        );
+        
+        // Get approved adoption requests where user is the adopter
+        const adopterRequestsQuery = query(
+          collection(db, 'adoptionRequests'),
+          where('adopterId', '==', user.uid),
+          where('status', '==', 'approved')
+        );
+
+        const [ownerSnapshot, adopterSnapshot] = await Promise.all([
+          getDocs(ownerRequestsQuery),
+          getDocs(adopterRequestsQuery)
+        ]);
+
+        const contactsList: Contact[] = [];
+
+        // Add contacts from requests where user is owner (adopters they approved)
+        ownerSnapshot.docs.forEach(doc => {
+          const data = doc.data();
+          contactsList.push({
+            id: data.adopterId,
+            name: data.adopterName,
+            petName: data.petName,
+            petId: data.petId,
+          });
+        });
+
+        // Add contacts from requests where user is adopter (owners who approved them)
+        adopterSnapshot.docs.forEach(doc => {
+          const data = doc.data();
+          contactsList.push({
+            id: data.ownerId,
+            name: data.ownerName,
+            petName: data.petName,
+            petId: data.petId,
+          });
+        });
+
+        // Remove duplicates
+        const uniqueContacts = contactsList.filter((contact, index, self) => 
+          index === self.findIndex(c => c.id === contact.id)
+        );
+
+        console.log('Found contacts:', uniqueContacts);
+        setContacts(uniqueContacts);
+      } catch (error) {
+        console.error('Error fetching contacts:', error);
       }
-      setLoading(false);
-    });
+    };
 
-    return () => unsubscribe();
-  }, [user]);
+    fetchContacts();
+  }, [user, userProfile]);
 
-  const getOtherParticipantName = (chat: Chat) => {
-    const otherParticipantId = chat.participants.find(id => id !== user?.uid);
-    return chat.participantNames[otherParticipantId || ''] || 'Unknown User';
+  const openChat = (contactId: string, contactName: string, petName?: string) => {
+    // Create a deterministic chat ID
+    const chatId = user!.uid < contactId 
+      ? `${user!.uid}_${contactId}`
+      : `${contactId}_${user!.uid}`;
+    
+    // Navigate to chat page
+    window.location.href = `/chats/${chatId}?contactName=${encodeURIComponent(contactName)}&petName=${encodeURIComponent(petName || '')}`;
   };
 
   if (!user) {
@@ -59,19 +105,13 @@ export default function ChatsPage() {
             <p className="text-gray-600 mb-4">
               You need to be logged in to access your conversations.
             </p>
-            <Button className="bg-teal-600 hover:bg-teal-700">
-              Sign In
-            </Button>
+            <Link href="/auth">
+              <Button className="bg-teal-600 hover:bg-teal-700">
+                Sign In
+              </Button>
+            </Link>
           </CardContent>
         </Card>
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-teal-50 to-white flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600"></div>
       </div>
     );
   }
@@ -84,88 +124,71 @@ export default function ChatsPage() {
             Your Conversations
           </h1>
           <p className="text-xl text-gray-600">
-            Connect with other pet lovers
+            Chat with people you&apos;ve connected with through adoption requests
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Chat List */}
-          <div className={`lg:col-span-1 ${selectedChat ? 'hidden lg:block' : ''}`}>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Messages</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {chats.length === 0 ? (
-                  <div className="text-center py-8">
-                    <MessageCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600">No conversations yet</p>
-                  </div>
-                ) : (
+        <div className="max-w-4xl mx-auto">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Your Contacts</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {contacts.length === 0 ? (
+                <div className="text-center py-8">
+                  <MessageCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="font-semibold text-gray-800 mb-2">No messages</h3>
+                  <p className="text-gray-600 text-sm mb-4">
+                    You haven&apos;t contacted anyone yet. Approve or get approved for adoption requests to start chatting.
+                  </p>
                   <div className="space-y-2">
-                    {chats.map((chat) => (
-                      <button
-                        key={chat.id}
-                        onClick={() => setSelectedChat(chat)}
-                        className={`w-full text-left p-3 rounded-lg transition-colors ${
-                          selectedChat?.id === chat.id
-                            ? 'bg-teal-100 border-teal-200'
-                            : 'hover:bg-gray-50 border-transparent'
-                        } border`}
-                      >
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <h3 className="font-medium text-gray-800">
-                              {getOtherParticipantName(chat)}
-                            </h3>
-                            {chat.petName && (
-                              <p className="text-sm text-teal-600 mb-1">
-                                About: {chat.petName}
-                              </p>
-                            )}
-                            <p className="text-sm text-gray-600 truncate">
-                              {chat.lastMessage}
+                    <Link href="/browse">
+                      <Button variant="outline" size="sm" className="w-full">
+                        Browse Pets
+                      </Button>
+                    </Link>
+                    <Link href="/profile">
+                      <Button variant="outline" size="sm" className="w-full">
+                        Check Requests
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {contacts.map((contact) => (
+                    <button
+                      key={contact.id}
+                      onClick={() => openChat(contact.id, contact.name, contact.petName)}
+                      className="w-full text-left p-4 rounded-lg transition-colors hover:bg-gray-50 border border-gray-200 hover:border-teal-200"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className="w-12 h-12 bg-teal-600 rounded-full flex items-center justify-center">
+                          <User className="h-6 w-6 text-white" />
+                        </div>
+                        
+                        <div className="flex-1">
+                          <h3 className="font-medium text-gray-800">
+                            {contact.name}
+                          </h3>
+                          {contact.petName && (
+                            <p className="text-sm text-teal-600">
+                              About: {contact.petName}
                             </p>
-                          </div>
-                          <p className="text-xs text-gray-500">
-                            {chat.lastMessageTime.toLocaleTimeString([], {
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
+                          )}
+                          <p className="text-sm text-gray-500">
+                            Click to start chatting
                           </p>
                         </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Chat Area */}
-          <div className={`lg:col-span-2 ${!selectedChat ? 'hidden lg:block' : ''}`}>
-            {selectedChat ? (
-              <ChatSystem
-                chatId={selectedChat.id}
-                recipientName={getOtherParticipantName(selectedChat)}
-                onBack={() => setSelectedChat(null)}
-              />
-            ) : (
-              <Card className="h-96">
-                <CardContent className="flex items-center justify-center h-full">
-                  <div className="text-center">
-                    <MessageCircle className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                      Select a conversation
-                    </h3>
-                    <p className="text-gray-600">
-                      Choose a chat from the list to start messaging
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
+                        
+                        <MessageCircle className="h-5 w-5 text-gray-400" />
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

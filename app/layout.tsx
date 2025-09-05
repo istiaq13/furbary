@@ -15,6 +15,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <title>Furbari - Find Your Perfect Furry Companion</title>
+        <meta name="description" content="Connect loving pets with caring families. Every pet deserves a forever home." />
+      </head>
       <body className={inter.className}>
         <AuthProvider>
           <Navbar />

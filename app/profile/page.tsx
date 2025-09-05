@@ -8,8 +8,10 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { User, MapPin, Phone, Mail, Heart, PlusCircle, MessageCircle, Check, X, Clock } from 'lucide-react';
 import PetCard from '@/components/PetCard';
+import ChatModal from '@/components/ChatModal';
 import { collection, query, where, getDocs, orderBy, doc, updateDoc, addDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { ref, push, set } from 'firebase/database';
+import { db, realtimeDb } from '@/lib/firebase';
 import { Pet } from '@/types/Pet';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
@@ -36,6 +38,17 @@ export default function ProfilePage() {
   const [adoptionRequests, setAdoptionRequests] = useState<AdoptionRequest[]>([]);
   const [sentRequests, setSentRequests] = useState<AdoptionRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [chatModal, setChatModal] = useState<{
+    isOpen: boolean;
+    recipientId: string;
+    recipientName: string;
+    petId?: string;
+    petName?: string;
+  }>({
+    isOpen: false,
+    recipientId: '',
+    recipientName: '',
+  });
 
   useEffect(() => {
     const fetchUserPets = async () => {
@@ -67,26 +80,14 @@ export default function ProfilePage() {
       if (!user) return;
 
       try {
-        console.log('Fetching adoption requests for user:', user.uid);
-        
         // Fetch requests received by this user (as pet owner)
         const receivedRequestsRef = collection(db, 'adoptionRequests');
-        
-        // First try to get all adoption requests to see if they exist
-        const allRequestsSnapshot = await getDocs(receivedRequestsRef);
-        console.log('Total adoption requests in database:', allRequestsSnapshot.docs.length);
-        
-        allRequestsSnapshot.docs.forEach(doc => {
-          console.log('Request:', { id: doc.id, ...doc.data() });
-        });
-
         const receivedQuery = query(
           receivedRequestsRef,
           where('ownerId', '==', user.uid),
           orderBy('createdAt', 'desc')
         );
         const receivedSnapshot = await getDocs(receivedQuery);
-        console.log('Received requests count:', receivedSnapshot.docs.length);
         
         const receivedRequests = receivedSnapshot.docs.map(doc => ({
           id: doc.id,
@@ -95,7 +96,6 @@ export default function ProfilePage() {
           updatedAt: doc.data().updatedAt?.toDate() || new Date(),
         })) as AdoptionRequest[];
         
-        console.log('Processed received requests:', receivedRequests);
         setAdoptionRequests(receivedRequests);
 
         // Fetch requests sent by this user (as adopter)
@@ -106,7 +106,6 @@ export default function ProfilePage() {
           orderBy('createdAt', 'desc')
         );
         const sentSnapshot = await getDocs(sentQuery);
-        console.log('Sent requests count:', sentSnapshot.docs.length);
         
         const sentRequests = sentSnapshot.docs.map(doc => ({
           id: doc.id,
@@ -115,14 +114,12 @@ export default function ProfilePage() {
           updatedAt: doc.data().updatedAt?.toDate() || new Date(),
         })) as AdoptionRequest[];
         
-        console.log('Processed sent requests:', sentRequests);
         setSentRequests(sentRequests);
       } catch (error) {
         console.error('Error fetching adoption requests:', error);
         
         // Fallback: try without orderBy to see if it's an index issue
         try {
-          console.log('Trying fallback query without orderBy...');
           const fallbackQuery = query(
             collection(db, 'adoptionRequests'),
             where('ownerId', '==', user.uid)
@@ -136,7 +133,6 @@ export default function ProfilePage() {
             updatedAt: doc.data().updatedAt?.toDate() || new Date(),
           })) as AdoptionRequest[];
           
-          console.log('Fallback received requests:', fallbackRequests);
           setAdoptionRequests(fallbackRequests);
           
           // Also try for sent requests
@@ -153,7 +149,6 @@ export default function ProfilePage() {
             updatedAt: doc.data().updatedAt?.toDate() || new Date(),
           })) as AdoptionRequest[];
           
-          console.log('Fallback sent requests:', fallbackSentRequests);
           setSentRequests(fallbackSentRequests);
         } catch (fallbackError) {
           console.error('Fallback query also failed:', fallbackError);
@@ -183,22 +178,12 @@ export default function ProfilePage() {
       });
 
       if (action === 'approve') {
-        // Create a chat between the adopter and owner
-        const chatData = {
-          participants: [request.adopterId, request.ownerId],
-          participantNames: {
-            [request.adopterId]: request.adopterName,
-            [request.ownerId]: request.ownerName,
-          },
-          petId: request.petId,
-          petName: request.petName,
-          lastMessage: `Adoption request for ${request.petName} has been approved! You can now chat.`,
-          lastMessageTime: new Date(),
-          createdAt: new Date(),
-        };
-
-        await addDoc(collection(db, 'chats'), chatData);
-        toast.success(`Adoption request approved! A chat has been created with ${request.adopterName}.`);
+        toast.success(`Adoption request approved! You can now chat with ${request.adopterName} in the chats page.`);
+        
+        // Redirect to chats page after a short delay
+        setTimeout(() => {
+          window.location.href = '/chats';
+        }, 2000);
       } else {
         toast.success('Adoption request rejected.');
       }
@@ -438,12 +423,20 @@ export default function ProfilePage() {
                             )}
                             
                             {request.status === 'approved' && (
-                              <Link href="/chats">
-                                <Button size="sm" className="bg-teal-600 hover:bg-teal-700">
-                                  <MessageCircle className="h-4 w-4 mr-1" />
-                                  Go to Chat
-                                </Button>
-                              </Link>
+                              <Button
+                                onClick={() => setChatModal({
+                                  isOpen: true,
+                                  recipientId: request.adopterId,
+                                  recipientName: request.adopterName,
+                                  petId: request.petId,
+                                  petName: request.petName,
+                                })}
+                                size="sm" 
+                                className="bg-teal-600 hover:bg-teal-700"
+                              >
+                                <MessageCircle className="h-4 w-4 mr-1" />
+                                Start Chat
+                              </Button>
                             )}
                           </div>
                         </div>
@@ -510,12 +503,20 @@ export default function ProfilePage() {
                             
                             {request.status === 'approved' && (
                               <div className="flex justify-end">
-                                <Link href="/chats">
-                                  <Button size="sm" className="bg-teal-600 hover:bg-teal-700">
-                                    <MessageCircle className="h-4 w-4 mr-1" />
-                                    Go to Chat
-                                  </Button>
-                                </Link>
+                                <Button
+                                  onClick={() => setChatModal({
+                                    isOpen: true,
+                                    recipientId: request.ownerId,
+                                    recipientName: request.ownerName,
+                                    petId: request.petId,
+                                    petName: request.petName,
+                                  })}
+                                  size="sm" 
+                                  className="bg-teal-600 hover:bg-teal-700"
+                                >
+                                  <MessageCircle className="h-4 w-4 mr-1" />
+                                  Start Chat
+                                </Button>
                               </div>
                             )}
                             
@@ -558,6 +559,16 @@ export default function ProfilePage() {
             </>
           )}
         </Tabs>
+        
+        {/* Chat Modal */}
+        <ChatModal
+          isOpen={chatModal.isOpen}
+          onClose={() => setChatModal({ ...chatModal, isOpen: false })}
+          recipientId={chatModal.recipientId}
+          recipientName={chatModal.recipientName}
+          petId={chatModal.petId}
+          petName={chatModal.petName}
+        />
       </div>
     </div>
   );

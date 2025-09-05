@@ -80,7 +80,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ defaultMode = 'signin' }) => {
             <Heart className="h-12 w-12 text-teal-600" />
           </div>
           <CardTitle className="text-2xl font-bold text-gray-800">
-            Welcome to Furbaby
+            Welcome to Furbari
           </CardTitle>
           <p className="text-gray-600">Find your perfect companion</p>
         </CardHeader>

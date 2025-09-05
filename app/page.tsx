@@ -72,7 +72,7 @@ export default function Home() {
               <Link href="/auth?mode=signup">
                 <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-teal-600">
                   <Heart className="h-5 w-5 mr-2" />
-                  Join Furbaby
+                  Join Furbari
                 </Button>
               </Link>
             )}
@@ -94,7 +94,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-4">
-              Why Choose Furbaby?
+              Why Choose Furbari?
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
               We make pet adoption safe, easy, and joyful for everyone involved.

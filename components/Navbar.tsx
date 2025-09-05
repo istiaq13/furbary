@@ -29,7 +29,7 @@ const Navbar = () => {
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2">
             <Heart className="h-8 w-8 text-teal-600" />
-            <span className="text-2xl font-bold text-gray-800">Furbaby</span>
+            <span className="text-2xl font-bold text-gray-800">Furbari</span>
           </Link>
 
           {/* Desktop Navigation */}

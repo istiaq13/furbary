@@ -6,6 +6,7 @@ import { getDatabase } from "firebase/database";
 const firebaseConfig = {
   apiKey: "AIzaSyCsA1O2jvsa7SMWmRpxeTDOLnry_rbvezA",
   authDomain: "furbari-8a084.firebaseapp.com",
+  databaseURL: "https://furbari-8a084-default-rtdb.asia-southeast1.firebasedatabase.app/",
   projectId: "furbari-8a084",
   storageBucket: "furbari-8a084.firebasestorage.app",
   messagingSenderId: "326057786717",

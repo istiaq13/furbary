@@ -189,9 +189,7 @@ export default function BrowsePage() {
         updatedAt: new Date(),
       };
 
-      console.log('Creating adoption request:', adoptionRequest);
-      const docRef = await addDoc(collection(db, 'adoptionRequests'), adoptionRequest);
-      console.log('Adoption request created with ID:', docRef.id);
+      await addDoc(collection(db, 'adoptionRequests'), adoptionRequest);
 
       toast.success(
         `Adoption request sent for ${pet.name}! The owner will be notified and can approve your request to start chatting.`

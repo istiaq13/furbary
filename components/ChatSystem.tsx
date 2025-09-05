@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Send, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { ref, push, onValue, query, orderByChild } from 'firebase/database';
+import { ref, push, onValue, query, orderByChild, update } from 'firebase/database';
 import { realtimeDb } from '@/lib/firebase';
 import { ChatMessage } from '@/types/Pet';
 
@@ -70,6 +70,14 @@ const ChatSystem: React.FC<ChatSystemProps> = ({ chatId, recipientName, onBack }
     try {
       const messagesRef = ref(realtimeDb, `chats/${chatId}/messages`);
       await push(messagesRef, messageData);
+      
+      // Also update the chat's lastMessage and lastMessageTime
+      const chatRef = ref(realtimeDb, `chats/${chatId}`);
+      await update(chatRef, {
+        lastMessage: newMessage.trim(),
+        lastMessageTime: Date.now(),
+      });
+      
       setNewMessage('');
     } catch (error) {
       console.error('Error sending message:', error);
