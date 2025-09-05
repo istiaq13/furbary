@@ -1,10 +1,18 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import Link from 'next/link';
-import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
-import { Heart, MessageCircle, PlusCircle, User, LogOut, Menu, X } from 'lucide-react';
+import { useState } from "react";
+import Link from "next/link";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import {
+  Heart,
+  MessageCircle,
+  PlusCircle,
+  User,
+  LogOut,
+  Menu,
+  X,
+} from "lucide-react";
 
 const Navbar = () => {
   const { user, userProfile, signOut } = useAuth();
@@ -14,7 +22,7 @@ const Navbar = () => {
     try {
       await signOut();
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.error("Error signing out:", error);
     }
   };
 
@@ -34,29 +42,41 @@ const Navbar = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
-            <Link href="/browse" className="text-gray-700 hover:text-teal-600 transition-colors">
+            <Link
+              href="/browse"
+              className="text-gray-700 hover:text-teal-600 transition-colors"
+            >
               Browse Pets
             </Link>
-            
+
             {user && (
               <>
-                {userProfile?.userType === 'owner' && (
-                  <Link href="/add-pet" className="flex items-center space-x-1 text-gray-700 hover:text-teal-600 transition-colors">
+                {userProfile?.userType === "owner" && (
+                  <Link
+                    href="/add-pet"
+                    className="flex items-center space-x-1 text-gray-700 hover:text-teal-600 transition-colors"
+                  >
                     <PlusCircle className="h-4 w-4" />
                     <span>Add Pet</span>
                   </Link>
                 )}
-                
-                <Link href="/chats" className="flex items-center space-x-1 text-gray-700 hover:text-teal-600 transition-colors">
+
+                <Link
+                  href="/chats"
+                  className="flex items-center space-x-1 text-gray-700 hover:text-teal-600 transition-colors"
+                >
                   <MessageCircle className="h-4 w-4" />
                   <span>Chats</span>
                 </Link>
-                
-                <Link href="/profile" className="flex items-center space-x-1 text-gray-700 hover:text-teal-600 transition-colors">
+
+                <Link
+                  href="/profile"
+                  className="flex items-center space-x-1 text-gray-700 hover:text-teal-600 transition-colors"
+                >
                   <User className="h-4 w-4" />
                   <span>Profile</span>
                 </Link>
-                
+
                 <Button
                   onClick={handleSignOut}
                   variant="outline"
@@ -75,7 +95,9 @@ const Navbar = () => {
                   <Button variant="outline">Sign In</Button>
                 </Link>
                 <Link href="/auth?mode=signup">
-                  <Button className="bg-teal-600 hover:bg-teal-700">Get Started</Button>
+                  <Button className="bg-teal-600 hover:bg-teal-700">
+                    Get Started
+                  </Button>
                 </Link>
               </div>
             )}
@@ -83,12 +105,12 @@ const Navbar = () => {
 
           {/* Mobile menu button */}
           <div className="md:hidden">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={toggleMobileMenu}
-            >
-              {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            <Button variant="ghost" size="sm" onClick={toggleMobileMenu}>
+              {isMobileMenuOpen ? (
+                <X className="h-6 w-6" />
+              ) : (
+                <Menu className="h-6 w-6" />
+              )}
             </Button>
           </div>
         </div>
@@ -97,29 +119,41 @@ const Navbar = () => {
         {isMobileMenuOpen && (
           <div className="md:hidden py-4 border-t">
             <div className="flex flex-col space-y-4">
-              <Link href="/browse" className="text-gray-700 hover:text-teal-600 transition-colors">
+              <Link
+                href="/browse"
+                className="text-gray-700 hover:text-teal-600 transition-colors"
+              >
                 Browse Pets
               </Link>
-              
+
               {user && (
                 <>
-                  {userProfile?.userType === 'owner' && (
-                    <Link href="/add-pet" className="flex items-center space-x-1 text-gray-700 hover:text-teal-600 transition-colors">
+                  {userProfile?.userType === "owner" && (
+                    <Link
+                      href="/add-pet"
+                      className="flex items-center space-x-1 text-gray-700 hover:text-teal-600 transition-colors"
+                    >
                       <PlusCircle className="h-4 w-4" />
                       <span>Add Pet</span>
                     </Link>
                   )}
-                  
-                  <Link href="/chats" className="flex items-center space-x-1 text-gray-700 hover:text-teal-600 transition-colors">
+
+                  <Link
+                    href="/chats"
+                    className="flex items-center space-x-1 text-gray-700 hover:text-teal-600 transition-colors"
+                  >
                     <MessageCircle className="h-4 w-4" />
                     <span>Chats</span>
                   </Link>
-                  
-                  <Link href="/profile" className="flex items-center space-x-1 text-gray-700 hover:text-teal-600 transition-colors">
+
+                  <Link
+                    href="/profile"
+                    className="flex items-center space-x-1 text-gray-700 hover:text-teal-600 transition-colors"
+                  >
                     <User className="h-4 w-4" />
                     <span>Profile</span>
                   </Link>
-                  
+
                   <Button
                     onClick={handleSignOut}
                     variant="outline"
@@ -135,10 +169,14 @@ const Navbar = () => {
               {!user && (
                 <div className="flex flex-col space-y-2">
                   <Link href="/auth">
-                    <Button variant="outline" className="w-full">Sign In</Button>
+                    <Button variant="outline" className="w-full">
+                      Sign In
+                    </Button>
                   </Link>
                   <Link href="/auth?mode=signup">
-                    <Button className="bg-teal-600 hover:bg-teal-700 w-full">Get Started</Button>
+                    <Button className="bg-teal-600 hover:bg-teal-700 w-full">
+                      Get Started
+                    </Button>
                   </Link>
                 </div>
               )}
