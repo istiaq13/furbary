@@ -1,16 +1,30 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import Image from 'next/image';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Heart, Search, MessageCircle, Shield, Award, Users } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import PetCard from '@/components/PetCard';
-import { collection, query, orderBy, limit, getDocs, where } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { Pet } from '@/types/Pet';
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Heart,
+  Search,
+  MessageCircle,
+  Shield,
+  Award,
+  Users,
+} from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import PetCard from "@/components/PetCard";
+import {
+  collection,
+  query,
+  orderBy,
+  limit,
+  getDocs,
+  where,
+} from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { Pet } from "@/types/Pet";
 
 export default function Home() {
   const { user, userProfile } = useAuth();
@@ -20,24 +34,27 @@ export default function Home() {
   useEffect(() => {
     const fetchFeaturedPets = async () => {
       try {
-        const petsRef = collection(db, 'pets');
+        const petsRef = collection(db, "pets");
         const q = query(petsRef, limit(20));
         const querySnapshot = await getDocs(q);
-        
-        const allPets = querySnapshot.docs.map(doc => ({
+
+        const allPets = querySnapshot.docs.map((doc) => ({
           id: doc.id,
-          ...doc.data()
+          ...doc.data(),
         })) as Pet[];
-        
+
         // Filter available pets and sort by creation date on client side
         const availablePets = allPets
-          .filter(pet => !pet.isAdopted)
-          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+          .filter((pet) => !pet.isAdopted)
+          .sort(
+            (a, b) =>
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          )
           .slice(0, 6);
-        
+
         setFeaturedPets(availablePets);
       } catch (error) {
-        console.error('Error fetching featured pets:', error);
+        console.error("Error fetching featured pets:", error);
       } finally {
         setLoading(false);
       }
@@ -57,29 +74,41 @@ export default function Home() {
             <span className="block text-teal-200">Furry Companion</span>
           </h1>
           <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto opacity-90">
-            Connect loving pets with caring families. Every pet deserves a forever home.
+            Connect loving pets with caring families. Every pet deserves a
+            forever home.
           </p>
-          
+
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/browse">
-              <Button size="lg" className="bg-white text-teal-600 hover:bg-gray-100">
+              <Button
+                size="lg"
+                className="bg-white text-teal-600 hover:bg-gray-100"
+              >
                 <Search className="h-5 w-5 mr-2" />
                 Browse Pets
               </Button>
             </Link>
-            
+
             {!user && (
               <Link href="/auth?mode=signup">
-                <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-teal-600">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="border-2 border-white text-white bg-transparent hover:bg-white hover:text-teal-600 transition-colors"
+                >
                   <Heart className="h-5 w-5 mr-2" />
-                  Join Furbaby
+                  Join Furbari
                 </Button>
               </Link>
             )}
-            
-            {user && userProfile?.userType === 'owner' && (
+
+            {user && userProfile?.userType === "owner" && (
               <Link href="/add-pet">
-                <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-teal-600">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="border-white text-white hover:bg-white hover:text-teal-600"
+                >
                   <Heart className="h-5 w-5 mr-2" />
                   Add Your Pet
                 </Button>
@@ -94,7 +123,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-4">
-              Why Choose Furbaby?
+              Why Choose Furbari?
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
               We make pet adoption safe, easy, and joyful for everyone involved.
@@ -107,7 +136,8 @@ export default function Home() {
                 <Shield className="h-12 w-12 text-teal-600 mx-auto mb-4" />
                 <h3 className="text-xl font-semibold mb-2">Safe & Secure</h3>
                 <p className="text-gray-600">
-                  Verified users and secure messaging to ensure safe adoption processes.
+                  Verified users and secure messaging to ensure safe adoption
+                  processes.
                 </p>
               </CardContent>
             </Card>
@@ -115,9 +145,12 @@ export default function Home() {
             <Card className="text-center p-6 hover:shadow-lg transition-shadow">
               <CardContent className="pt-6">
                 <MessageCircle className="h-12 w-12 text-teal-600 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold mb-2">Direct Communication</h3>
+                <h3 className="text-xl font-semibold mb-2">
+                  Direct Communication
+                </h3>
                 <p className="text-gray-600">
-                  Chat directly with pet owners to learn more about your future companion.
+                  Chat directly with pet owners to learn more about your future
+                  companion.
                 </p>
               </CardContent>
             </Card>
@@ -125,9 +158,12 @@ export default function Home() {
             <Card className="text-center p-6 hover:shadow-lg transition-shadow">
               <CardContent className="pt-6">
                 <Users className="h-12 w-12 text-teal-600 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold mb-2">Community Focused</h3>
+                <h3 className="text-xl font-semibold mb-2">
+                  Community Focused
+                </h3>
                 <p className="text-gray-600">
-                  Join a community of pet lovers dedicated to finding perfect matches.
+                  Join a community of pet lovers dedicated to finding perfect
+                  matches.
                 </p>
               </CardContent>
             </Card>
@@ -185,9 +221,10 @@ export default function Home() {
             Ready to Make a Difference?
           </h2>
           <p className="text-xl text-gray-600 mb-8">
-            Whether you're looking to adopt or help a pet find a new home, start your journey today.
+            Whether you're looking to adopt or help a pet find a new home, start
+            your journey today.
           </p>
-          
+
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/browse">
               <Button size="lg" className="bg-teal-600 hover:bg-teal-700">
@@ -195,10 +232,14 @@ export default function Home() {
                 Find a Pet
               </Button>
             </Link>
-            
+
             {!user && (
               <Link href="/auth?mode=signup">
-                <Button size="lg" variant="outline" className="border-teal-600 text-teal-600 hover:bg-teal-50">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="border-2 border-teal-600 text-teal-600 bg-white hover:bg-teal-600 hover:text-white transition-colors"
+                >
                   <Heart className="h-5 w-5 mr-2" />
                   Join Our Community
                 </Button>

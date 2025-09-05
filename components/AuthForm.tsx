@@ -1,30 +1,36 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, Heart } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from "@/contexts/AuthContext";
+import { Loader2, Heart } from "lucide-react";
+import toast from "react-hot-toast";
 
 const signInSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
 const signUpSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters'),
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-  userType: z.enum(['owner', 'adopter']),
-  location: z.string().min(2, 'Location is required'),
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  userType: z.enum(["owner", "adopter"]),
+  location: z.string().min(2, "Location is required"),
   phone: z.string().optional(),
 });
 
@@ -32,10 +38,10 @@ type SignInData = z.infer<typeof signInSchema>;
 type SignUpData = z.infer<typeof signUpSchema>;
 
 interface AuthFormProps {
-  defaultMode?: 'signin' | 'signup';
+  defaultMode?: "signin" | "signup";
 }
 
-const AuthForm: React.FC<AuthFormProps> = ({ defaultMode = 'signin' }) => {
+const AuthForm: React.FC<AuthFormProps> = ({ defaultMode = "signin" }) => {
   const { signIn, signUp } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState(defaultMode);
@@ -52,9 +58,9 @@ const AuthForm: React.FC<AuthFormProps> = ({ defaultMode = 'signin' }) => {
     setIsLoading(true);
     try {
       await signIn(data.email, data.password);
-      toast.success('Welcome back!');
+      toast.success("Welcome back!");
     } catch (error: any) {
-      toast.error(error.message || 'Failed to sign in');
+      toast.error(error.message || "Failed to sign in");
     } finally {
       setIsLoading(false);
     }
@@ -63,10 +69,17 @@ const AuthForm: React.FC<AuthFormProps> = ({ defaultMode = 'signin' }) => {
   const handleSignUp = async (data: SignUpData) => {
     setIsLoading(true);
     try {
-      await signUp(data.email, data.password, data.name, data.userType, data.location, data.phone);
-      toast.success('Account created successfully!');
+      await signUp(
+        data.email,
+        data.password,
+        data.name,
+        data.userType,
+        data.location,
+        data.phone
+      );
+      toast.success("Account created successfully!");
     } catch (error: any) {
-      toast.error(error.message || 'Failed to create account');
+      toast.error(error.message || "Failed to create account");
     } finally {
       setIsLoading(false);
     }
@@ -80,7 +93,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ defaultMode = 'signin' }) => {
             <Heart className="h-12 w-12 text-teal-600" />
           </div>
           <CardTitle className="text-2xl font-bold text-gray-800">
-            Welcome to Furbaby
+            Welcome to Furbari
           </CardTitle>
           <p className="text-gray-600">Find your perfect companion</p>
         </CardHeader>
@@ -93,13 +106,16 @@ const AuthForm: React.FC<AuthFormProps> = ({ defaultMode = 'signin' }) => {
             </TabsList>
 
             <TabsContent value="signin">
-              <form onSubmit={signInForm.handleSubmit(handleSignIn)} className="space-y-4">
+              <form
+                onSubmit={signInForm.handleSubmit(handleSignIn)}
+                className="space-y-4"
+              >
                 <div>
                   <Label htmlFor="signin-email">Email</Label>
                   <Input
                     id="signin-email"
                     type="email"
-                    {...signInForm.register('email')}
+                    {...signInForm.register("email")}
                     placeholder="Enter your email"
                     className="mt-1"
                   />
@@ -115,7 +131,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ defaultMode = 'signin' }) => {
                   <Input
                     id="signin-password"
                     type="password"
-                    {...signInForm.register('password')}
+                    {...signInForm.register("password")}
                     placeholder="Enter your password"
                     className="mt-1"
                   />
@@ -137,19 +153,22 @@ const AuthForm: React.FC<AuthFormProps> = ({ defaultMode = 'signin' }) => {
                       Signing In...
                     </>
                   ) : (
-                    'Sign In'
+                    "Sign In"
                   )}
                 </Button>
               </form>
             </TabsContent>
 
             <TabsContent value="signup">
-              <form onSubmit={signUpForm.handleSubmit(handleSignUp)} className="space-y-4">
+              <form
+                onSubmit={signUpForm.handleSubmit(handleSignUp)}
+                className="space-y-4"
+              >
                 <div>
                   <Label htmlFor="signup-name">Full Name</Label>
                   <Input
                     id="signup-name"
-                    {...signUpForm.register('name')}
+                    {...signUpForm.register("name")}
                     placeholder="Enter your full name"
                     className="mt-1"
                   />
@@ -165,7 +184,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ defaultMode = 'signin' }) => {
                   <Input
                     id="signup-email"
                     type="email"
-                    {...signUpForm.register('email')}
+                    {...signUpForm.register("email")}
                     placeholder="Enter your email"
                     className="mt-1"
                   />
@@ -181,7 +200,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ defaultMode = 'signin' }) => {
                   <Input
                     id="signup-password"
                     type="password"
-                    {...signUpForm.register('password')}
+                    {...signUpForm.register("password")}
                     placeholder="Create a password"
                     className="mt-1"
                   />
@@ -194,7 +213,14 @@ const AuthForm: React.FC<AuthFormProps> = ({ defaultMode = 'signin' }) => {
 
                 <div>
                   <Label htmlFor="userType">I want to</Label>
-                  <Select onValueChange={(value) => signUpForm.setValue('userType', value as 'owner' | 'adopter')}>
+                  <Select
+                    onValueChange={(value) =>
+                      signUpForm.setValue(
+                        "userType",
+                        value as "owner" | "adopter"
+                      )
+                    }
+                  >
                     <SelectTrigger className="mt-1">
                       <SelectValue placeholder="Select your role" />
                     </SelectTrigger>
@@ -214,7 +240,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ defaultMode = 'signin' }) => {
                   <Label htmlFor="signup-location">Location</Label>
                   <Input
                     id="signup-location"
-                    {...signUpForm.register('location')}
+                    {...signUpForm.register("location")}
                     placeholder="City, State"
                     className="mt-1"
                   />
@@ -229,7 +255,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ defaultMode = 'signin' }) => {
                   <Label htmlFor="signup-phone">Phone Number (Optional)</Label>
                   <Input
                     id="signup-phone"
-                    {...signUpForm.register('phone')}
+                    {...signUpForm.register("phone")}
                     placeholder="Your phone number"
                     className="mt-1"
                   />
@@ -246,7 +272,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ defaultMode = 'signin' }) => {
                       Creating Account...
                     </>
                   ) : (
-                    'Create Account'
+                    "Create Account"
                   )}
                 </Button>
               </form>
